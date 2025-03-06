@@ -30,17 +30,18 @@ export async function POST(req: NextRequest) {
     
     const data = await response.json();
     
+    // 创建响应对象
+    const responseObj = NextResponse.json(data);
+    
     // 设置认证令牌 cookie
     // 注意：在生产环境中，应该设置 secure: true 和 httpOnly: true
-    cookies().set({
-      name: 'auth_token',
-      value: data.token,
+    responseObj.cookies.set('auth_token', data.token, {
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 天
       sameSite: 'strict',
     });
     
-    return NextResponse.json(data);
+    return responseObj;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

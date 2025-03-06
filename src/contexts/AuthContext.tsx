@@ -1,6 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import authService, { AuthResponse } from '@/services/auth';
+"use client";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
+import { useIntl } from "react-intl";
+import authService, { AuthResponse } from "@/services/auth";
 
 // 用户类型
 interface User {
@@ -17,8 +25,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -41,31 +49,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const intl = useIntl();
 
   // 初始化认证状态
   useEffect(() => {
     const initAuth = async () => {
       // 从本地存储获取令牌
-      const storedToken = localStorage.getItem('auth_token');
-      
+      const storedToken = localStorage.getItem("auth_token");
+
       if (storedToken) {
         try {
           // 验证令牌
           const { valid, user } = await authService.verifyToken();
-          
+
           if (valid && user) {
             setUser(user);
             setToken(storedToken);
           } else {
             // 令牌无效，清除本地存储
-            localStorage.removeItem('auth_token');
+            localStorage.removeItem("auth_token");
           }
         } catch (err) {
-          console.error('Failed to verify token:', err);
-          localStorage.removeItem('auth_token');
+          console.error("Failed to verify token:", err);
+          localStorage.removeItem("auth_token");
         }
       }
-      
+
       setIsLoading(false);
     };
 
@@ -78,10 +87,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const handleAuthResponse = (response: AuthResponse) => {
     const { token, user } = response;
-    
+
     // 保存令牌到本地存储
-    localStorage.setItem('auth_token', token);
-    
+    localStorage.setItem("auth_token", token);
+
     // 更新状态
     setToken(token);
     setUser(user);
@@ -92,20 +101,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * 用户登录
    * @param email 邮箱
    * @param password 密码
+   * @returns 是否登录成功
    */
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const response = await authService.login({ email, password });
       handleAuthResponse(response);
-      
-      // 登录成功后重定向到仪表盘
-      router.push('/dashboard');
+
+      return true;
     } catch (err) {
-      setError('登录失败，请检查您的凭证');
-      console.error('Login error:', err);
+      const errorMessage = intl.formatMessage({
+        id: "login.error.invalidCredentials",
+      });
+      setError(errorMessage);
+      console.error("Login error:", err);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -116,20 +129,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * @param name 姓名
    * @param email 邮箱
    * @param password 密码
+   * @returns 是否注册成功
    */
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (
+    name: string,
+    email: string,
+    password: string
+  ): Promise<boolean> => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const response = await authService.register({ name, email, password });
       handleAuthResponse(response);
-      
-      // 注册成功后重定向到仪表盘
-      router.push('/dashboard');
+
+      return true;
     } catch (err) {
-      setError('注册失败，请稍后再试');
-      console.error('Register error:', err);
+      const errorMessage = intl.formatMessage({
+        id: "login.error.serverError",
+      });
+      setError(errorMessage);
+      console.error("Register error:", err);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -141,19 +162,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
-      
+
       // 调用登出 API
       await authService.logout();
-      
+
       // 清除本地存储和状态
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem("auth_token");
       setUser(null);
       setToken(null);
-      
+
       // 重定向到登录页面
-      router.push('/login');
+      router.push("/login");
     } catch (err) {
-      console.error('Logout error:', err);
+      console.error("Logout error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -180,9 +201,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 
@@ -192,12 +211,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
  */
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  
+
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  
+
   return context;
 };
-
-export default AuthContext;

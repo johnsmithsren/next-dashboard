@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/navbar";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { ThemeProvider } from "@/theme/ThemeContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { getIntl, defaultLocale } from "@/i18n";
 
 const geistSans = Geist({
@@ -38,10 +39,12 @@ export default function RootLayout({
       >
         <LanguageProvider>
           <ThemeProvider>
-            <Navbar />
-            <main className="container mx-auto px-4 py-8 pt-20">
-              {children}
-            </main>
+            <AuthProvider>
+              <Navbar />
+              <main className="container mx-auto px-4 py-8 pt-20">
+                {children}
+              </main>
+            </AuthProvider>
           </ThemeProvider>
         </LanguageProvider>
       </body>

@@ -62,7 +62,7 @@ const API_BASE_URL = getApiBaseUrl();
 /**
  * 通用请求处理函数
  */
-async function fetchAPI<T>(
+export async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
@@ -201,7 +201,7 @@ export const documentAPI = {
    */
   updateDocument: async (
     id: string | number,
-    documentData: Partial<Omit<Document, "id" | "createdAt" | "updatedAt">>
+    documentData: Partial<Document>
   ): Promise<Document> => {
     return fetchAPI<Document>(`/documents/${id}`, {
       method: "PUT",
@@ -240,7 +240,7 @@ export const analyticsAPI = {
       ? `?${new URLSearchParams(params).toString()}`
       : "";
     return fetchAPI<PaginatedResponse<AnalyticsData["recentActivities"][0]>>(
-      `/analytics/user-activity${queryString}`
+      `/analytics/activity${queryString}`
     );
   },
 };
